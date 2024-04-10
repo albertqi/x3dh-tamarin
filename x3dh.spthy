@@ -3,6 +3,32 @@ begin
 
 builtins: asymmetric-encryption, symmetric-encryption, diffie-hellman, hashing
 
+rule IdentityKey:
+    let identityKey = 'ik'^~sk in
+    [ Fr(~sk) ]
+    -->
+    [ !PrivateIdentityKey($A, ~sk), !PublicIdentityKey($A, identityKey),
+    Out(identityKey) ]
 
+rule EphemeralKey:
+    let ephemeralKey = 'ek'^~sk in
+    [ Fr(~sk) ]
+    -->
+    [ !PrivateEphemeralKey($A, ~sk), !PublicEphemeralKey($A, ephemeralKey),
+    Out(ephemeralKey) ]
+
+rule SignedPrekey:
+    let signedPrekey = 'spk'^~sk in
+    [ Fr(~sk) ]
+    -->
+    [ !PrivateSignedPrekey($A, ~sk), !PublicSignedPrekey($A, signedPrekey),
+    Out(signedPrekey) ]
+
+rule OneTimePrekey:
+    let oneTimePrekey = 'opk'^~sk in
+    [ Fr(~sk) ]
+    -->
+    [ !PrivateOneTimePrekey($A, ~sk), !PublicOneTimePrekey($A, oneTimePrekey),
+    Out(oneTimePrekey) ]
 
 end
