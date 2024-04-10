@@ -1,0 +1,10 @@
+Signal protocol referene:
+https://signal.org/docs/specifications/x3dh/
+
+Papers:
+
+https://hal.science/hal-04361766/document
+
+https://eprint.iacr.org/2022/1710
+
+https://www.cs.ru.nl/bachelors-theses/2021/Ferran_van_der_Have___4104145___The_X3DH_Protocol_-_A_Proof_of_Security.pdf
