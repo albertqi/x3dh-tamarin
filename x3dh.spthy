@@ -1,34 +1,47 @@
 theory X3DH
 begin
 
-builtins: asymmetric-encryption, symmetric-encryption, diffie-hellman, hashing
+builtins: asymmetric-encryption, symmetric-encryption, diffie-hellman, hashing, signing
 
 rule IdentityKey:
     let identityKey = 'ik'^~sk in
     [ Fr(~sk) ]
     -->
-    [ !PrivateIdentityKey($A, ~sk), !PublicIdentityKey($A, identityKey),
+    [ !PrivateIdentityKey($P, ~sk), !PublicIdentityKey($P, identityKey),
     Out(identityKey) ]
 
 rule EphemeralKey:
     let ephemeralKey = 'ek'^~sk in
     [ Fr(~sk) ]
     -->
-    [ !PrivateEphemeralKey($A, ~sk), !PublicEphemeralKey($A, ephemeralKey),
+    [ !PrivateEphemeralKey($P, ~sk), !PublicEphemeralKey($P, ephemeralKey),
     Out(ephemeralKey) ]
 
 rule SignedPrekey:
     let signedPrekey = 'spk'^~sk in
     [ Fr(~sk) ]
     -->
-    [ !PrivateSignedPrekey($A, ~sk), !PublicSignedPrekey($A, signedPrekey),
+    [ !PrivateSignedPrekey($P, ~sk), !PublicSignedPrekey($P, signedPrekey),
     Out(signedPrekey) ]
 
 rule OneTimePrekey:
     let oneTimePrekey = 'opk'^~sk in
     [ Fr(~sk) ]
     -->
-    [ !PrivateOneTimePrekey($A, ~sk), !PublicOneTimePrekey($A, oneTimePrekey),
+    [ !PrivateOneTimePrekey($P, ~sk), !PublicOneTimePrekey($P, oneTimePrekey),
     Out(oneTimePrekey) ]
 
 end
+
+rule B_init:
+    let prekey_sig = !sign(SPKB, pIKB) in
+    [ !PrivateIdentityKey($B, pIKB), !PublicIdentityKey($B, IKB), 
+        !PublicSignedPrekey($B, SPKB), !OneTimePrekey($B, OTKB) ]
+    -->
+    [ Out(<$B, IKB, SPKB, prekey_sig, OTKB>) ]
+
+rule A_initial_message:
+    let DH4 = // Some shared output, not entirely sure what this is??
+    [ In(<$B, IKB, SPKB, prekey_sig, OTKB>), !EphemeralKey($A, EKA) ]
+    --> // Verify Bob's prekey signature
+    []
