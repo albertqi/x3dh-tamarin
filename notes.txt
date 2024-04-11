@@ -1,10 +1,22 @@
-Signal protocol referene:
-https://signal.org/docs/specifications/x3dh/
+Signal Protocol Reference:
+- https://signal.org/docs/specifications/x3dh/
+
+
 
 Papers:
 
-https://hal.science/hal-04361766/document
+- https://hal.science/hal-04361766/document
+- https://eprint.iacr.org/2022/1710
+- https://www.cs.ru.nl/bachelors-theses/2021/Ferran_van_der_Have___4104145___The_X3DH_Protocol_-_A_Proof_of_Security.pdf
 
-https://eprint.iacr.org/2022/1710
 
-https://www.cs.ru.nl/bachelors-theses/2021/Ferran_van_der_Have___4104145___The_X3DH_Protocol_-_A_Proof_of_Security.pdf
+
+Meeting with Chong and Ana:
+- Elliptic Curve Keys:
+    - Tamarin does not support elliptic curve keys.
+    - Substitute elliptic curve key with standard exponentiation.
+    - Try introducing vulnerabilities and see if Tamarin can detect these.
+    - Investigate the question: Can you express the elliptic key rules in Tamarin? What would you need in Tamarin to be able to model elliptic curve keys?
+- KDF:
+    - No need to model KDF.
+    - One hash is fine. 
