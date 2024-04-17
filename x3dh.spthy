@@ -18,20 +18,20 @@ rule SignedPrekey:
     Out(signedPrekey) ]
 
 rule B_Init:
-    let OPKB = 'opk'^~sk
-        prekey_sig = sign(SPKB, pIKB) in
+    let prekey_sig = sign(SPKB, pIKB)
+        OPKB = 'opk'^~sk in
     [ !PrivateIdentityKey($B, pIKB), !PublicIdentityKey($B, IKB), !PublicSignedPrekey($B, SPKB), Fr(~sk) ]
     --[ ReachBInit() ]->
     [ Out(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
 
 rule A_InitMsg:
-    let AD = <IKA, IKB>
+    let EKA = 'ek'^~sk
+        DH1 = ('g'^IKA)^SPKB
+        DH2 = ('g'^EKA)^IKB
+        DH3 = ('g'^EKA)^SPKB
+        DH4 = ('g'^EKA)^OPKB
         SK = h(<DH1, DH2, DH3, DH4>)
-        DH4 = 'g'^(EKA*OPKB)
-        DH3 = 'g'^(EKA*SPKB)
-        DH2 = 'g'^(EKA*IKB)
-        DH1 = 'g'^(IKA*SPKB)
-        EKA = 'ek'^~sk in
+        AD = <IKA, IKB> in
     [ !PublicIdentityKey($A, IKA), Fr(~sk), Fr(~msg),
       In(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
     --[ ReachAInitMsg(), ResponderKey(SK), MessageWasSent(~msg),
@@ -39,16 +39,16 @@ rule A_InitMsg:
     [ Out(<$A, IKA, EKA, SPKB, OPKB, senc(<~msg, AD>, SK)>) ]
 
 rule B_RecMsg:
-    let AD = <IKA, IKB>
+    let DH1 = ('g'^IKA)^SPKB
+        DH2 = ('g'^EKA)^IKB
+        DH3 = ('g'^EKA)^SPKB
+        DH4 = ('g'^EKA)^OPKB
         SK = h(<DH1, DH2, DH3, DH4>)
-        DH4 = 'g'^(EKA*OPKB)
-        DH3 = 'g'^(EKA*SPKB)
-        DH2 = 'g'^(EKA*IKB)
-        DH1 = 'g'^(IKA*SPKB) in
+        AD = <IKA, IKB> in
     [ !PublicIdentityKey($B, IKB),
       In(<$A, IKA, EKA, SPKB, OPKB, msg_enc>) ]
     --[ ReachBRecMsg(), InitiatorKey(SK) ]->
-    [ Out(sdec(<~msg, AD>, SK)) ]
+    [ Out(sdec(msg_enc, SK)) ]
 
 restriction Eq:
     "All t1 t2 #x. Eq(t1, t2) @ #x ==> t1 = t2"
