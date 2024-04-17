@@ -19,4 +19,4 @@ Meeting with Chong and Ana:
     - Investigate the question: Can you express the elliptic key rules in Tamarin? What would you need in Tamarin to be able to model elliptic curve keys?
 - KDF:
     - No need to model KDF.
-    - One hash is fine. 
+    - One hash is fine.
