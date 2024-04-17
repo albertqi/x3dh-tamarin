@@ -17,32 +17,38 @@ rule SignedPrekey:
     [ !PrivateSignedPrekey($P, ~sk), !PublicSignedPrekey($P, signedPrekey),
     Out(signedPrekey) ]
 
-rule OneTimePrekey:
-    let oneTimePrekey = 'opk'^~sk in
-    [ Fr(~sk) ]
-    -->
-    [ !PrivateOneTimePrekey($P, ~sk), !PublicOneTimePrekey($P, oneTimePrekey),
-    Out(oneTimePrekey) ]
-
-end
-
-rule B_init:
+rule B_Init:
     let prekey_sig = !sign(SPKB, pIKB) in
-    [ !PrivateIdentityKey($B, pIKB), !PublicIdentityKey($B, IKB), 
-        !PublicSignedPrekey($B, SPKB), !OneTimePrekey($B, OTKB) ]
+    let OPKB = 'opk'^~sk in
+    [ !PrivateIdentityKey($B, pIKB), !PublicIdentityKey($B, IKB), !PublicSignedPrekey($B, SPKB), Fr(~sk) ]
     -->
-    [ Out(<$B, IKB, SPKB, prekey_sig, OTKB>) ]
+    [ Out(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
 
-rule A_initial_message:
-    let 
-        EKA = 'ek'^~sk
-        DH4 =  // Calculate DH parameters
-        SK = // KDF using the diffie hellman params to generate secret key.
-    in
-    [ In(<$B, IKB, SPKB, prekey_sig, OTKB>), Fr(~sk) ]
-    --> // Verify Bob's prekey signature
-    []
+rule A_InitMsg:
+    let EKA = 'ek'^~sk in
+    let DH1 = IKA^SPKB in
+    let DH2 = EKA^IKB in
+    let DH3 = EKA^SPKB in
+    let DH4 = EKA^OPKB in
+    let SK = !hash(DH1, DH2, DH3, DH4) in
+    let AD = !hash(senc(IKA, pIKA), senc(IKB, pIKA)) in
+    [ !PrivateIdentityKey($A, pIKA), !PublicIdentityKey($A, IKA), Fr(~sk), Fr(~msg)
+      In(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
+    --[ verify(prekey_sig, SPKB, IKB) ]->
+    [ Out(<$A, IKA, EKA, SPKB, senc(<~msg, AD>, SK)>) ]
 
+rule B_RecMsg:
+    let EKB = 'ek'^~sk in
+    let DH1 = IKB^SPKA in
+    let DH2 = EKB^IKA in
+    let DH3 = EKB^SPKA in
+    let DH4 = EKB^OPKA in
+    let SK = !hash(DH1, DH2, DH3, DH4) in
+    let AD = !hash(senc(IKB, pIKB), senc(IKA, pIKB)) in
+    [ !PrivateIdentityKey($B, pIKB), !PublicIdentityKey($B, IKB), Fr(~sk),
+      In(<$A, IKA, EKA, SPKB, senc(<~msg, AD>, SK)>) ]
+    -->
+    [ Out(sdec(<~msg, AD>, SK)) ]
 
 // Lemmas from the base DH implementation
 restriction Eq:
