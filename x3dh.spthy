@@ -1,7 +1,7 @@
 theory X3DH
 begin
 
-builtins: asymmetric-encryption, symmetric-encryption, diffie-hellman, hashing, signing
+builtins: diffie-hellman, hashing, signing, symmetric-encryption
 
 rule IdentityKey:
     let identityKey = 'ik'^~sk in
@@ -18,7 +18,7 @@ rule SignedPrekey:
     Out(signedPrekey) ]
 
 rule B_Init:
-    let prekey_sig = !sign(SPKB, pIKB) in
+    let prekey_sig = sign(SPKB, pIKB) in
     let OPKB = 'opk'^~sk in
     [ !PrivateIdentityKey($B, pIKB), !PublicIdentityKey($B, IKB), !PublicSignedPrekey($B, SPKB), Fr(~sk) ]
     -->
@@ -30,23 +30,22 @@ rule A_InitMsg:
     let DH2 = EKA^IKB in
     let DH3 = EKA^SPKB in
     let DH4 = EKA^OPKB in
-    let SK = !hash(DH1, DH2, DH3, DH4) in
-    let AD = !hash(senc(IKA, pIKA), senc(IKB, pIKA)) in
-    [ !PrivateIdentityKey($A, pIKA), !PublicIdentityKey($A, IKA), Fr(~sk), Fr(~msg)
+    let SK = h(<DH1, DH2, DH3, DH4>) in
+    let AD = <IKA, IKB> in
+    [ !PublicIdentityKey($A, IKA), Fr(~sk), Fr(~msg)
       In(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
     --[ verify(prekey_sig, SPKB, IKB) ]->
-    [ Out(<$A, IKA, EKA, SPKB, senc(<~msg, AD>, SK)>) ]
+    [ Out(<$A, IKA, EKA, SPKB, OPKB, senc(<~msg, AD>, SK)>) ]
 
 rule B_RecMsg:
-    let EKB = 'ek'^~sk in
-    let DH1 = IKB^SPKA in
-    let DH2 = EKB^IKA in
-    let DH3 = EKB^SPKA in
-    let DH4 = EKB^OPKA in
-    let SK = !hash(DH1, DH2, DH3, DH4) in
-    let AD = !hash(senc(IKB, pIKB), senc(IKA, pIKB)) in
-    [ !PrivateIdentityKey($B, pIKB), !PublicIdentityKey($B, IKB), Fr(~sk),
-      In(<$A, IKA, EKA, SPKB, senc(<~msg, AD>, SK)>) ]
+    let DH1 = IKA^SPKB in
+    let DH2 = EKA^IKB in
+    let DH3 = EKA^SPKB in
+    let DH4 = EKA^OPKB in
+    let SK = h(<DH1, DH2, DH3, DH4>) in
+    let AD = <IKA, IKB> in
+    [ !PublicIdentityKey($B, IKB), Fr(~sk),
+      In(<$A, IKA, EKA, SPKB, OPKB, msg_enc>) ]
     -->
     [ Out(sdec(<~msg, AD>, SK)) ]
 
