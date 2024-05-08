@@ -25,35 +25,35 @@ rule OneTimePrekey:
       Out(opk) ]
 
 rule B_Init:
-    let prekey_sig = sign(SPKB, pIKB) in
-    [ !PrivateIdentityKey($B, pIKB), !PublicIdentityKey($B, IKB),
+    let prekey_sig = sign(SPKB, ~pIKB) in
+    [ !PrivateIdentityKey($B, ~pIKB), !PublicIdentityKey($B, IKB),
       !PublicSignedPrekey($B, SPKB), !PublicOneTimePrekey($B, OPKB) ]
     --[ ReachBInit() ]->
     [ Out(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
 
 rule A_InitMsg:
     let EKA = 'ek'^~sk
-        DH1 = SPKB^pIKA
+        DH1 = SPKB^~pIKA
         DH2 = IKB^~sk
         DH3 = SPKB^~sk
         DH4 = OPKB^~sk
         SK = h(<DH1, DH2, DH3, DH4>)
         AD = <IKA, IKB> in
-    [ !PrivateIdentityKey($A, pIKA), !PublicIdentityKey($A, IKA), Fr(~sk), Fr(~msg),
+    [ !PrivateIdentityKey($A, ~pIKA), !PublicIdentityKey($A, IKA), Fr(~sk), Fr(~msg),
       In(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
     --[ ReachAInitMsg(), ResponderKey(SK), MessageWasSent(~msg),
         Eq(verify(prekey_sig, SPKB, IKB), true) ]->
     [ Out(<$A, IKA, EKA, senc(<~msg, AD>, SK)>) ]
 
 rule B_RecMsg:
-    let DH1 = IKA^pSPKB
-        DH2 = EKA^pIKB
-        DH3 = EKA^pSPKB
-        DH4 = EKA^pOPKB
+    let DH1 = IKA^~pSPKB
+        DH2 = EKA^~pIKB
+        DH3 = EKA^~pSPKB
+        DH4 = EKA^~pOPKB
         SK = h(<DH1, DH2, DH3, DH4>)
         AD = <IKA, IKB> in
-    [ !PrivateIdentityKey($B, pIKB), !PublicIdentityKey($B, IKB),
-      !PrivateSignedPrekey($B, pSPKB), !PrivateOneTimePrekey($B, pOPKB),
+    [ !PrivateIdentityKey($B, ~pIKB), !PublicIdentityKey($B, IKB),
+      !PrivateSignedPrekey($B, ~pSPKB), !PrivateOneTimePrekey($B, ~pOPKB),
       In(<$A, IKA, EKA, msg_enc>) ]
     --[ ReachBRecMsg(), InitiatorKey(SK) ]->
     [ Out(sdec(msg_enc, SK)) ]
