@@ -42,7 +42,7 @@ rule A_InitMsg:
         AD = <IKA, IKB> in
     [ !PrivateIdentityKey($A, ~pIKA), !PublicIdentityKey($A, IKA), Fr(~sk), Fr(~msg),
       In(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
-    --[ ReachAInitMsg(), ResponderKey(SK), MessageWasSent(~msg),
+    --[ ReachAInitMsg(), ResponderKey(SK), MessageWasSent(~msg), SecretKey(SK)
         Eq(verify(prekey_sig, SPKB, IKB), true) ]->
     [ Out(<$A, IKA, EKA, senc(<~msg, AD>, SK)>) ]
 
@@ -81,6 +81,6 @@ lemma SendMsgSecrecy:
     "All m #t. MessageWasSent(m) @ #t ==> not Ex #x. K(m) @ #x"
 
 lemma ForwardSecrecy:
-    "All m #i #j. i < j & MessageWasSent(m) @ i & Leak() @ #j ==> not Ex #x. K(m) @ #x"
+    "All k #i #j. i < j & MessageWasSent(k) @ i & Leak() @ #j ==> not Ex #x. K(k) @ #x"
 
 end
