@@ -29,7 +29,8 @@ rule B_Init:
     [ !PrivateIdentityKey($B, ~pIKB), !PublicIdentityKey($B, IKB),
       !PublicSignedPrekey($B, SPKB), !PublicOneTimePrekey($B, OPKB) ]
     --[ ReachBInit() ]->
-    [ Out(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
+    [ St_B($B, $A),
+      Out(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
 
 rule A_InitMsg:
     let EKA = 'ek'^~sk
@@ -53,7 +54,7 @@ rule B_RecMsg:
         SK = h(<DH1, DH2, DH3, DH4>)
         AD = <IKA, IKB> in
     [ !PrivateIdentityKey($B, ~pIKB), !PublicIdentityKey($B, IKB),
-      !PrivateSignedPrekey($B, ~pSPKB), !PrivateOneTimePrekey($B, ~pOPKB),
+      !PrivateSignedPrekey($B, ~pSPKB), !PrivateOneTimePrekey($B, ~pOPKB), St_B($B, $A),
       In(<$A, IKA, EKA, msg_enc>) ]
     --[ ReachBRecMsg(), InitiatorKey(SK) ]->
     [ Out(sdec(msg_enc, SK)) ]
