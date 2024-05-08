@@ -58,6 +58,11 @@ rule B_RecMsg:
     --[ ReachBRecMsg(), InitiatorKey(SK) ]->
     [ Out(sdec(msg_enc, SK)) ]
 
+rule LeakPrivateKeys:
+    [ !PrivateIdentityKey($A, ~pika), !PrivateIdentityKey($B, ~pikb), !PrivateSignedPrekey($B, ~pskb)]
+    --[ Leak() ]->
+    [ Out(<~pika, ~pikb, ~pskb>) ]
+
 restriction Eq:
     "All t1 t2 #x. Eq(t1, t2) @ #x ==> t1 = t2"
 
@@ -73,5 +78,8 @@ lemma InitiatorKeySecrecy:
 
 lemma SendMsgSecrecy:
     "All m #t. MessageWasSent(m) @ #t ==> not Ex #x. K(m) @ #x"
+
+lemma ForwardSecrecy:
+    "All m #i #j. i < j & MessageWasSent(m) @ i & Leak() @ #j ==> not Ex #x. K(m) @ #x"
 
 end
