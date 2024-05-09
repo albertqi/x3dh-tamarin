@@ -43,7 +43,7 @@ rule A_InitMsg:
     let DH1 = SPKB^~pIKA
         DH2 = IKB^~pEKA
         DH3 = SPKB^~pEKA
-        SK = <DH1, DH2, DH3>
+        SK = h(<DH1, DH2, DH3>)
         AD = senc(<IKA, IKB>, SK) in
     [ !PrivateIdentityKey($A, ~pIKA), !PublicIdentityKey($A, IKA),
       !PrivateEphemeralKey($A, ~pEKA), !PublicEphemeralKey($A, EKA), Fr(~msg),
@@ -56,7 +56,7 @@ rule B_RecMsg:
     let DH1 = IKA^~pSPKB
         DH2 = EKA^~pIKB
         DH3 = EKA^~pSPKB
-        SK = <DH1, DH2, DH3>
+        SK = h(<DH1, DH2, DH3>)
         AD = senc(<IKA, IKB>, SK) in
     [ St_B($B, $A), !PrivateIdentityKey($B, ~pIKB), !PublicIdentityKey($B, IKB),
       !PrivateSignedPrekey($B, ~pSPKB), !PrivateOneTimePrekey($B, ~pOPKB),
