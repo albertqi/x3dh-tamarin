@@ -59,8 +59,7 @@ rule B_RecMsg:
     []
 
 rule LeakPrivateKeys:
-    [ !PrivateIdentityKey($A, ~pIKA), !PrivateIdentityKey($B, ~pIKB),
-      !PrivateSignedPrekey($B, ~pSPKB) ]
+    [ !PrivateIdentityKey($A, ~pIKA), !PrivateIdentityKey($B, ~pIKB) ]
     --[ Leak() ]->
     [ Out(<~pIKA, ~pIKB, ~pSPKB>) ]
 
