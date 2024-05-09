@@ -65,9 +65,10 @@ rule B_RecMsg:
     []
 
 rule LeakPrivateKeys:
-    [ !PrivateIdentityKey($A, ~pika), !PrivateIdentityKey($B, ~pikb), !PrivateSignedPrekey($B, ~pskb)]
+    [ !PrivateIdentityKey($A, ~pIKA), !PrivateIdentityKey($B, ~pIKB),
+      !PrivateSignedPrekey($B, ~pSPKB) ]
     --[ Leak() ]->
-    [ Out(<~pika, ~pikb, ~pskb>) ]
+    [ Out(<~pIKA, ~pIKB, ~pSPKB>) ]
 
 restriction Eq:
     "All t1 t2 #x. Eq(t1, t2) @ #x ==> t1 = t2"
@@ -86,6 +87,6 @@ lemma SendMsgSecrecy:
     "All m #t. MessageWasSent(m) @ #t ==> not Ex #x. K(m) @ #x"
 
 lemma ForwardSecrecy:
-    "All k #i #j. i < j & MessageWasSent(k) @ i & Leak() @ #j ==> not Ex #x. K(k) @ #x"
+    "All m #i #j. #i < #j & MessageWasSent(m) @ #i & Leak() @ #j ==> not Ex #x. K(m) @ #x"
 
 end
