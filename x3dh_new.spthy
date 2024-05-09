@@ -1,125 +1,90 @@
-theory X3DH_New_Impl
+theory X3DH2
 begin
 
-builtins: symmetric-encryption, diffie-hellman, signing
+builtins: diffie-hellman, hashing, signing, symmetric-encryption
 
-// Step 1
-// Generate a fresh secret key, then create long term key and public key for $P
-// Also output public component
-rule Ltk:
-  let publicComponent = 'g'^~sk in
-  [ Fr(~sk)]
-  -->
-  [!Sk($P, ~sk), !Pk($P, publicComponent), Out(publicComponent)]
+rule IdentityKey:
+    let ik = 'ik'^~sk in
+    [ Fr(~sk) ]
+    -->
+    [ !PrivateIdentityKey($P, ~sk), !PublicIdentityKey($P, ik),
+      Out(ik) ]
 
-rule Ek:
-  let publicComponent = 'ek'^~sk in
-  [ Fr(~sk)]
-  -->
-  [!SEk($P, ~sk), !PEk($P, publicComponent), Out(publicComponent)]
+rule SignedPrekey:
+    let spk = 'spk'^~sk in
+    [ Fr(~sk) ]
+    -->
+    [ !PrivateSignedPrekey($P, ~sk), !PublicSignedPrekey($P, spk),
+      Out(spk) ]
 
-rule Spk:
-  let publicComponent = 'spk'^~sk in
-  [ Fr(~sk)]
-  -->
-  [!Spk($P, ~sk), !PSpk($P, publicComponent), Out(publicComponent)]
+rule EphemeralKey:
+    let ek = 'ek'^~sk in
+    [ Fr(~sk) ]
+    -->
+    [ !PrivateEphemeralKey($P, ~sk), !PublicEphemeralKey($P, ek),
+      Out(ek) ]
 
-rule OTpk:
-  let publicComponent = 'otk'^~sk in
-  [ Fr(~sk)]
-  -->
-  [!SOTpk($P, ~sk), !POTpk($P, publicComponent), Out(publicComponent)]
+rule OneTimePrekey:
+    let opk = 'opk'^~sk in
+    [ Fr(~sk) ]
+    -->
+    [ !PrivateOneTimePrekey($P, ~sk), !PublicOneTimePrekey($P, opk),
+      Out(opk) ]
 
-// Step 2
-// For A to initialize a message, need A's public key
-// Send key from A to B, and also notation that we started message
-rule A_Init:
-  [!Pk($A, pkA)]
-  --[ ReachAInit() ]->
-  [ Out(<$A, $B, pkA>),
-    St_A($A, $B)
-  ]
-
-
-// Step 2
 rule B_Init:
     let prekey_sig = sign(SPKB, ~pIKB) in
-    [ !Sk($B, ~pIKB), !Pk($B, IKB),
-      !PSpk($B, SPKB), !POTpk($B, OPKB) ]
-    --[ ReachBInit(), ResponderKey(~pIKB) ]->
+    [ !PrivateIdentityKey($B, ~pIKB), !PublicIdentityKey($B, IKB),
+      !PublicSignedPrekey($B, SPKB), !PublicOneTimePrekey($B, OPKB) ]
+    --[ ReachBInit() ]->
     [ St_B($B, $A),
-      Out(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
+      Out(<$B, $A, IKB, SPKB, prekey_sig, OPKB>) ]
 
-// Step 2: A wants to message
-rule A_SendMsg:
-  let DH1 = SPKB^~skA
-      DH2 = IKB^~ekA
-      DH3 = SPKB^~ekA
-      // DH4 = OPKB^~ekA
-      SK = <<DH1, DH2>, DH3>
-      AD = <pkA, IKB> in
-      
-  // To reply, need both public keys, a new message, A's secret key, and existing messages
-  [ !Sk($A, ~skA),
-    !Pk($A, pkA),
-    !SEk($A, ~ekA),
-    !PEk($A, pekA),
-    !Pk($B, pkB),
-    Fr(~msg),
-    In(<$B, IKB, SPKB, prekey_sig, OPKB>),
-    St_A($A, $B)
-  ]
-  --[ ReachASendMsg(),
-    MessageWasSent(~msg),
-    InitiatorKey(SK),
-    Eq(verify(prekey_sig, SPKB, IKB), true)
-    ]->
-    // Output encoded message
-  [ Out(<$A, $B, pkA, pekA ,senc(~msg, SK)>)
-  ]
+rule A_InitMsg:
+    let DH1 = SPKB^~pIKA
+        DH2 = IKB^~pEKA
+        DH3 = SPKB^~pEKA
+        SK = <DH1, DH2, DH3>
+        AD = senc(<IKA, IKB>, SK) in
+    [ !PrivateIdentityKey($A, ~pIKA), !PublicIdentityKey($A, IKA),
+      !PrivateEphemeralKey($A, ~pEKA), !PublicEphemeralKey($A, EKA), Fr(~msg),
+      In(<$B, $A, IKB, SPKB, prekey_sig, OPKB>) ]
+    --[ ReachAInitMsg(), ResponderKey(SK), MessageWasSent(~msg), SecretKey(SK),
+        Eq(verify(prekey_sig, SPKB, IKB), true) ]->
+    [ Out(<$A, $B, IKA, EKA, senc(~msg, SK), AD>) ]
 
 rule B_RecMsg:
-    let DH1 = pkA^~pSPKB
-        DH2 = pEk^~pIKB
-        DH3 = pEk^~pSPKB
-        // DH4 = pEk^~pOTpk
-        SK = <<DH1, DH2>, DH3>
-        AD = <pkA, IKB> in
-    [ !Sk($B, ~pIKB), !Pk($B, IKB),
-      !PSpk($B, ~pSPKB), St_B($B, $A),
-      !SOTpk($B, ~pOTpk),
-      In(<$A, $B, pkA, pEk, msg_enc>) ]
-    --[ ReachBRecMsg(), InitiatorKey(SK) ]->
-    [ Out(sdec(msg_enc, SK)) ]
+    let DH1 = IKA^~pSPKB
+        DH2 = EKA^~pIKB
+        DH3 = EKA^~pSPKB
+        SK = <DH1, DH2, DH3>
+        AD = senc(<IKA, IKB>, SK) in
+    [ St_B($B, $A), !PrivateIdentityKey($B, ~pIKB), !PublicIdentityKey($B, IKB),
+      !PrivateSignedPrekey($B, ~pSPKB), !PrivateOneTimePrekey($B, ~pOPKB),
+      In(<$A, $B, IKA, EKA, msg_enc, ad_from_a>),
+       ]
+    --[ ReachBRecMsg(), InitiatorKey(SK), Eq(AD, ad_from_a) ]->
+    []
 
 rule LeakPrivateKeys:
-  [ !Sk($A, ~skA), !Sk($B, ~skB)]
-  --[ Leak() ]->
-  [ Out(<~skB, ~skA>) ]
+    [ !PrivateIdentityKey($A, ~pika), !PrivateIdentityKey($B, ~pikb)]
+    --[ Leak() ]->
+    [ Out(<~pika, ~pikb>) ]
 
-
-// This restriction allows you to use the Eq action fact in rules to constrain
-// that two terms must be equal. This is used to "compare" two messages or
-// terms, e.g., to check that signature verification is equal to true.
-// This rule is only commented out right now to suppress a warning that Eq is
-// referenced but not used. Un-comment it whenever you want!
 restriction Eq:
-  "All t1 t2 #x. Eq(t1, t2) @ #x ==> t1 = t2"
+    "All t1 t2 #x. Eq(t1, t2) @ #x ==> t1 = t2"
 
 lemma Executability:
-  exists-trace
-  "Ex #t1 #t2 #t3. ReachAInit() @ #t1 & ReachBInit() @ #t2 & ReachASendMsg() @ #t3"
+    exists-trace
+    "Ex #t1 #t2 #t3. ReachBInit() @ #t1 & ReachAInitMsg() @ #t2 & ReachBRecMsg() @ #t3"
 
-// K(m) @ #t means that the adversary knows message m at timepoint #t.
-// Again, the following lemmas are commented out to suppress warnings.
 lemma ResponderKeySecrecy:
-  "All k #t. ResponderKey(k) @ #t ==> (not Ex #x. K(k) @ #x) | (Ex #x. Leak() @ #x)"
+    "All k #t. ResponderKey(k) @ #t ==> not Ex #x. K(k) @ #x"
 
 lemma InitiatorKeySecrecy:
-  "All k #t. InitiatorKey(k) @ #t ==> not (Ex #x. K(k) @ #x) | (Ex #x. Leak() @ #x)"
+    "All k #t. InitiatorKey(k) @ #t ==> not Ex #x. K(k) @ #x"
 
 lemma SendMsgSecrecy:
-  "All m #t. MessageWasSent(m) @ #t ==> not (Ex #x. K(m) @ #x) | (Ex #x. Leak() @ #x)"
+    "All m #t. MessageWasSent(m) @ #t ==> not Ex #x. K(m) @ #x"
 
 lemma ForwardSecrecy:
     "All k #i #j. i < j & MessageWasSent(k) @ i & Leak() @ #j ==> not Ex #x. K(k) @ #x"
