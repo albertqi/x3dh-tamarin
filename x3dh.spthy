@@ -44,24 +44,27 @@ rule A_InitMsg:
         DH2 = IKB^~pEKA
         DH3 = SPKB^~pEKA
         DH4 = OPKB^~pEKA
-        SK = h(<DH1, DH2, DH3, DH4>) in
+        SK = h(<DH1, DH2, DH3, DH4>)
+        AD = <IKA, IKB> in
     [ !PrivateIdentityKey($A, ~pIKA), !PublicIdentityKey($A, IKA),
       !PrivateEphemeralKey($A, ~pEKA), !PublicEphemeralKey($A, EKA), Fr(~msg),
       In(<$B, $A, IKB, SPKB, prekey_sig, OPKB>) ]
     --[ ReachAInitMsg(), ResponderKey(SK), MessageWasSent(~msg), SecretKey(SK),
         Eq(verify(prekey_sig, SPKB, IKB), true) ]->
-    [ Out(<$A, $B, IKA, EKA, senc(~msg, SK)>) ]
+    [ Out(<$A, $B, IKA, EKA, senc(~msg, SK), AD>) ]
 
 rule B_RecMsg:
     let DH1 = IKA^~pSPKB
         DH2 = EKA^~pIKB
         DH3 = EKA^~pSPKB
         DH4 = EKA^~pOPKB
-        SK = h(<DH1, DH2, DH3, DH4>) in
-    [ St_B($B, $A), !PrivateIdentityKey($B, ~pIKB),
+        SK = h(<DH1, DH2, DH3, DH4>)
+        AD = <IKA, IKB> in
+    [ St_B($B, $A), !PrivateIdentityKey($B, ~pIKB), !PublicIdentityKey($B, IKB),
       !PrivateSignedPrekey($B, ~pSPKB), !PrivateOneTimePrekey($B, ~pOPKB),
-      In(<$A, $B, IKA, EKA, msg_enc>) ]
-    --[ ReachBRecMsg(), InitiatorKey(SK) ]->
+      In(<$A, $B, IKA, EKA, msg_enc, AD_in>) ]
+    --[ ReachBRecMsg(), InitiatorKey(SK),
+        Eq(AD, AD_in) ]->
     []
 
 rule LeakPrivateKeys:
