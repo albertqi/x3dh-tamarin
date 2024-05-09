@@ -17,6 +17,13 @@ rule SignedPrekey:
     [ !PrivateSignedPrekey($P, ~sk), !PublicSignedPrekey($P, spk),
       Out(spk) ]
 
+rule EphemeralKey:
+    let ek = 'ek'^~sk in
+    [ Fr(~sk) ]
+    -->
+    [ !PrivateEphemeralKey($P, ~sk), !PublicEphemeralKey($P, ek),
+      Out(ek) ]
+
 rule OneTimePrekey:
     let opk = 'opk'^~sk in
     [ Fr(~sk) ]
@@ -30,34 +37,32 @@ rule B_Init:
       !PublicSignedPrekey($B, SPKB), !PublicOneTimePrekey($B, OPKB) ]
     --[ ReachBInit() ]->
     [ St_B($B, $A),
-      Out(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
+      Out(<$B, $A, IKB, SPKB, prekey_sig, OPKB>) ]
 
 rule A_InitMsg:
-    let EKA = 'ek'^~sk
-        DH1 = SPKB^~pIKA
-        DH2 = IKB^~sk
-        DH3 = SPKB^~sk
-        DH4 = OPKB^~sk
-        SK = h(<DH1, DH2, DH3, DH4>)
-        AD = <IKA, IKB> in
-    [ !PrivateIdentityKey($A, ~pIKA), !PublicIdentityKey($A, IKA), Fr(~sk), Fr(~msg),
-      In(<$B, IKB, SPKB, prekey_sig, OPKB>) ]
-    --[ ReachAInitMsg(), ResponderKey(SK), MessageWasSent(~msg), SecretKey(SK)
+    let DH1 = SPKB^~pIKA
+        DH2 = IKB^~pEKA
+        DH3 = SPKB^~pEKA
+        DH4 = OPKB^~pEKA
+        SK = h(<DH1, DH2, DH3, DH4>) in
+    [ !PrivateIdentityKey($A, ~pIKA), !PublicIdentityKey($A, IKA),
+      !PrivateEphemeralKey($A, ~pEKA), !PublicEphemeralKey($A, EKA), Fr(~msg),
+      In(<$B, $A, IKB, SPKB, prekey_sig, OPKB>) ]
+    --[ ReachAInitMsg(), ResponderKey(SK), MessageWasSent(~msg), SecretKey(SK),
         Eq(verify(prekey_sig, SPKB, IKB), true) ]->
-    [ Out(<$A, IKA, EKA, senc(<~msg, AD>, SK)>) ]
+    [ Out(<$A, $B, IKA, EKA, senc(~msg, SK)>) ]
 
 rule B_RecMsg:
     let DH1 = IKA^~pSPKB
         DH2 = EKA^~pIKB
         DH3 = EKA^~pSPKB
         DH4 = EKA^~pOPKB
-        SK = h(<DH1, DH2, DH3, DH4>)
-        AD = <IKA, IKB> in
-    [ !PrivateIdentityKey($B, ~pIKB), !PublicIdentityKey($B, IKB),
-      !PrivateSignedPrekey($B, ~pSPKB), !PrivateOneTimePrekey($B, ~pOPKB), St_B($B, $A),
-      In(<$A, IKA, EKA, msg_enc>) ]
+        SK = h(<DH1, DH2, DH3, DH4>) in
+    [ St_B($B, $A), !PrivateIdentityKey($B, ~pIKB),
+      !PrivateSignedPrekey($B, ~pSPKB), !PrivateOneTimePrekey($B, ~pOPKB),
+      In(<$A, $B, IKA, EKA, msg_enc>) ]
     --[ ReachBRecMsg(), InitiatorKey(SK) ]->
-    [ Out(sdec(msg_enc, SK)) ]
+    []
 
 rule LeakPrivateKeys:
     [ !PrivateIdentityKey($A, ~pika), !PrivateIdentityKey($B, ~pikb), !PrivateSignedPrekey($B, ~pskb)]
