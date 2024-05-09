@@ -1,4 +1,4 @@
-theory ExerciseADH
+theory X3DH_New_Impl
 begin
 
 builtins: symmetric-encryption, diffie-hellman, signing
@@ -52,10 +52,11 @@ rule B_Init:
 
 // Step 2: A wants to message
 rule A_SendMsg:
-  let DH1 = ~skA^SPKB
-      DH2 = ~ekA^IKB
-      DH3 = ~ekA^SPKB
-      SK = <<DH1, DH2>, DH3> 
+  let DH1 = SPKB^~skA
+      DH2 = IKB^~ekA
+      DH3 = SPKB^~ekA
+      // DH4 = OPKB^~ekA
+      SK = <<DH1, DH2>, DH3>
       AD = <pkA, IKB> in
       
   // To reply, need both public keys, a new message, A's secret key, and existing messages
@@ -71,8 +72,7 @@ rule A_SendMsg:
   --[ ReachASendMsg(),
     MessageWasSent(~msg),
     InitiatorKey(SK),
-    // Make sure that both used same shared key
-    // Eq('ack', sdec(encAck, sharedKey))
+    Eq(verify(prekey_sig, SPKB, IKB), true)
     ]->
     // Output encoded message
   [ Out(<$A, $B, pkA, pekA ,senc(~msg, SK)>)
@@ -82,10 +82,12 @@ rule B_RecMsg:
     let DH1 = pkA^~pSPKB
         DH2 = pEk^~pIKB
         DH3 = pEk^~pSPKB
-        SK = <<DH1, DH2>, DH3> 
+        // DH4 = pEk^~pOTpk
+        SK = <<DH1, DH2>, DH3>
         AD = <pkA, IKB> in
     [ !Sk($B, ~pIKB), !Pk($B, IKB),
       !PSpk($B, ~pSPKB), St_B($B, $A),
+      !SOTpk($B, ~pOTpk),
       In(<$A, $B, pkA, pEk, msg_enc>) ]
     --[ ReachBRecMsg(), InitiatorKey(SK) ]->
     [ Out(sdec(msg_enc, SK)) ]
